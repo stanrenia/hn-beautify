@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HN — Hacker News, en mieux</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#FF6600">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="HN Moderne">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap');
+
+  :root{
+    --bg:#F6F7F9;
+    --surface:#FFFFFF;
+    --ink:#16181D;
+    --slate:#5C6470;
+    --line:#E6E8EC;
+    --orange:#FF6600;
+    --orange-soft:#FFF1E8;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    font-size:15px;
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+
+  /* ---------- En-tête ---------- */
+  header{
+    position:sticky;top:0;z-index:20;
+    background:rgba(246,247,249,.88);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--line);
+  }
+  .head-inner{
+    max-width:880px;margin:0 auto;padding:14px 20px 0;
+  }
+  .masthead{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .logo{
+    width:34px;height:34px;border-radius:9px;
+    background:var(--orange);
+    display:grid;place-items:center;
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px;color:#fff;
+    flex-shrink:0;
+  }
+  .masthead h1{
+    font-family:'Space Grotesk',sans-serif;font-weight:700;
+    font-size:20px;letter-spacing:-.02em;
+  }
+  .masthead .sub{font-size:12.5px;color:var(--slate)}
+  .search{
+    margin-left:auto;position:relative;min-width:200px;flex:1;max-width:300px;
+  }
+  .search input{
+    width:100%;padding:9px 12px 9px 34px;
+    border:1px solid var(--line);border-radius:99px;
+    background:var(--surface);font:inherit;font-size:13.5px;color:var(--ink);
+    outline:none;transition:border-color .15s, box-shadow .15s;
+  }
+  .search input:focus{border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-soft)}
+  .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--slate)}
+
+  /* Onglets de filtre */
+  .tabs{
+    display:flex;gap:2px;margin-top:12px;overflow-x:auto;scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none}
+  .tab{
+    appearance:none;border:none;background:none;cursor:pointer;
+    font:inherit;font-size:13.5px;font-weight:500;color:var(--slate);
+    padding:9px 14px 11px;border-radius:8px 8px 0 0;
+    position:relative;white-space:nowrap;
+    transition:color .15s;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab[aria-selected="true"]{color:var(--ink);font-weight:600}
+  .tab[aria-selected="true"]::after{
+    content:"";position:absolute;left:14px;right:14px;bottom:0;height:3px;
+    background:var(--orange);border-radius:3px 3px 0 0;
+  }
+  .tab:focus-visible{outline:2px solid var(--orange);outline-offset:-2px}
+
+  /* ---------- Barre d'options ---------- */
+  .options{
+    max-width:880px;margin:18px auto 0;padding:0 20px;
+    display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  }
+  .options label{font-size:12px;color:var(--slate);font-weight:500}
+  .options select{
+    font:inherit;font-size:13px;color:var(--ink);
+    border:1px solid var(--line);background:var(--surface);
+    border-radius:8px;padding:6px 10px;cursor:pointer;outline:none;
+  }
+  .options select:focus-visible{border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-soft)}
+  .count{margin-left:auto;font-size:12.5px;color:var(--slate)}
+  .live-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#22B36B;margin-right:5px;vertical-align:1px}
+  .live-dot.offline{background:#C9CDD4}
+
+  /* ---------- Liste ---------- */
+  main{max-width:880px;margin:14px auto 60px;padding:0 20px}
+  .story{
+    display:grid;grid-template-columns:40px 1fr;gap:10px;
+    background:var(--surface);
+    border:1px solid var(--line);border-radius:10px;
+    padding:8px 14px 7px;margin-bottom:5px;
+    transition:transform .15s, box-shadow .15s, border-color .15s;
+  }
+  .story:hover{
+    transform:translateY(-1px);
+    border-color:#D8DBE1;
+    box-shadow:0 6px 18px rgba(22,24,29,.06);
+  }
+  .rank{
+    font-family:'JetBrains Mono',monospace;font-weight:700;font-size:15px;
+    color:var(--orange);text-align:right;padding-top:2px;
+    font-variant-numeric:tabular-nums;
+  }
+  .story h2{
+    font-family:'Space Grotesk',sans-serif;font-weight:500;
+    font-size:14.5px;line-height:1.3;letter-spacing:-.01em;
+  }
+  .story h2 a:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--orange)}
+  .domain{
+    display:inline-block;margin-left:6px;
+    font-family:'Inter',sans-serif;font-size:10.5px;font-weight:500;color:var(--slate);
+    background:var(--bg);border:1px solid var(--line);
+    padding:0 7px;border-radius:99px;vertical-align:1px;
+    transition:border-color .15s,color .15s;
+  }
+  a:hover .domain, .domain:hover{border-color:var(--orange);color:var(--orange)}
+  .meta{
+    display:flex;align-items:center;gap:5px;flex-wrap:wrap;
+    margin-top:2px;font-size:11.5px;color:var(--slate);
+  }
+  .meta .pts{
+    font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px;color:var(--ink);
+  }
+  .meta a:hover{color:var(--orange)}
+  .meta .sep{color:#C9CDD4}
+  /* Signature : barre de chaleur proportionnelle aux points */
+  .heat{
+    grid-column:2;height:2px;margin-top:5px;border-radius:3px;
+    background:linear-gradient(90deg,var(--orange),#FFB37D);
+    transform-origin:left;opacity:.85;
+  }
+
+  /* États */
+  .state{
+    text-align:center;padding:60px 20px;color:var(--slate);font-size:14px;
+  }
+  .state strong{display:block;font-family:'Space Grotesk',sans-serif;font-size:17px;color:var(--ink);margin-bottom:6px}
+  .spinner{
+    width:26px;height:26px;margin:0 auto 14px;border-radius:50%;
+    border:3px solid var(--line);border-top-color:var(--orange);
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .more{
+    display:block;margin:22px auto 0;
+    font:inherit;font-size:13.5px;font-weight:600;color:var(--ink);
+    background:var(--surface);border:1px solid var(--line);border-radius:99px;
+    padding:10px 26px;cursor:pointer;transition:border-color .15s, box-shadow .15s;
+  }
+  .more:hover{border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-soft)}
+  .more:disabled{opacity:.5;cursor:default;box-shadow:none;border-color:var(--line)}
+
+  footer{
+    max-width:880px;margin:0 auto 40px;padding:0 20px;
+    font-size:12px;color:var(--slate);text-align:center;
+  }
+  footer a{color:var(--orange)}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+  @media (max-width:560px){
+    .story{grid-template-columns:30px 1fr;padding:7px 10px 6px}
+    .rank{font-size:13px}
+    .search{max-width:none;min-width:140px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <div class="masthead">
+      <div class="logo">Y</div>
+      <div>
+        <h1>Hacker News</h1>
+        <div class="sub">lecture moderne &amp; élégante</div>
+      </div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="q" type="search" placeholder="Rechercher des articles…" aria-label="Rechercher">
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab" role="tab" data-feed="top"  aria-selected="true">À la une</button>
+      <button class="tab" role="tab" data-feed="new"  aria-selected="false">Nouveautés</button>
+      <button class="tab" role="tab" data-feed="best" aria-selected="false">Meilleurs</button>
+      <button class="tab" role="tab" data-feed="ask"  aria-selected="false">Ask HN</button>
+      <button class="tab" role="tab" data-feed="show" aria-selected="false">Show HN</button>
+      <button class="tab" role="tab" data-feed="jobs" aria-selected="false">Emplois</button>
+    </nav>
+  </div>
+</header>
+
+<div class="options">
+  <label for="range">Période</label>
+  <select id="range">
+    <option value="all">Toujours</option>
+    <option value="24h">24 heures</option>
+    <option value="week">Cette semaine</option>
+    <option value="month">Ce mois-ci</option>
+  </select>
+  <label for="sort">Tri</label>
+  <select id="sort">
+    <option value="points">Popularité</option>
+    <option value="date">Plus récent</option>
+  </select>
+  <span class="count" id="status"><span class="live-dot" id="dot"></span><span id="statusTxt">Chargement…</span></span>
+</div>
+
+<main>
+  <div id="list" aria-live="polite"></div>
+  <button class="more" id="more" hidden>Charger plus</button>
+</main>
+
+<footer>
+  Données : <a href="https://news.ycombinator.com" target="_blank" rel="noopener">news.ycombinator.com</a> via l'API publique HN Search (Algolia). Les liens « commentaires » ouvrent la discussion d'origine.
+</footer>
+
+<script>
+/* ============ Données de secours (instantané réel du 11 juin 2026) ============ */
+const SNAPSHOT = [
+ {id:48490024,t:"Show HN: Homebrew 6.0.0",u:"https://brew.sh/2026/06/11/homebrew-6.0.0/",p:689,a:"mikemcquaid",h:5,c:166},
+ {id:48487029,t:"Pokémon Go Scans Trained the Navigation Tech for Military Drones",u:"https://dronexl.co/2026/06/09/pokemon-go-scans-niantic-vantor-military-drone-navigation/",p:659,a:"vrganj",h:14,c:298},
+ {id:48490826,t:"MiMo Code is now released and open-source",u:"https://mimo.xiaomi.com/mimocode",p:357,a:"apeters",h:6,c:198},
+ {id:48492306,t:"Solar generates more energy in US than coal for first time",u:"https://www.theguardian.com/us-news/2026/jun/11/solar-energy-us-coal",p:340,a:"neilfrndes",h:4,c:147},
+ {id:48489402,t:"Lines of code got a better publicist",u:"https://curlewis.co.nz/posts/lines-of-code-got-a-better-publicist/",p:322,a:"RyeCombinator",h:8,c:214},
+ {id:48491830,t:"Petition to Withdraw Canada's Bill C-22",u:"https://www.ourcommons.ca/petitions/en/Petition/Sign/e-7416",p:258,a:"hmokiguess",h:5,c:90},
+ {id:48474274,t:"Emacs appearances in pop culture",u:"https://ianyepan.github.io/posts/emacs-in-pop-culture/",p:178,a:"ggcr",h:4,c:29},
+ {id:48489917,t:"Open Reproduction of DeepSeek-R1",u:"https://github.com/huggingface/open-r1",p:172,a:"yogthos",h:7,c:16},
+ {id:48462070,t:"macOS 27 Beta breaks the ability to boot Asahi Linux",u:"https://www.phoronix.com/news/macOS-27-Beta-Breaks-Asahi",p:170,a:"josephcsible",h:7,c:72},
+ {id:48492215,t:"The RCE that AMD wouldn't fix",u:"https://mrbruh.com/amd2/",p:169,a:"MrBruh",h:4,c:64},
+ {id:48452001,t:"Developer gets Half-Life running at 30 FPS on a Nokia N95",u:"https://www.tomshardware.com/video-games/handheld-gaming/developer-gets-half-life-running-at-30-fps-on-a-2007-nokia-n95",p:154,a:"ljf",h:6,c:42},
+ {id:48476214,t:"Fully autonomous drones have killed human soldiers for the first time",u:"https://www.newscientist.com/article/2529849-fully-autonomous-drones-have-killed-human-soldiers-for-the-first-time/",p:152,a:"deadgopher",h:7,c:119},
+ {id:48492533,t:"Software Is Made Between Commits",u:"https://zed.dev/blog/introducing-deltadb",p:148,a:"jeremy_k",h:4,c:99},
+ {id:48492304,t:"Waymo Premier",u:"https://waymo.com/blog/2026/06/waymo-premier/",p:116,a:"boulos",h:4,c:272},
+ {id:48492210,t:"Claude Fable 5: mid-tier results on coding tasks",u:"https://www.endorlabs.com/learn/claude-fable-5-mythos-grade-hype",p:111,a:"bugvader",h:5,c:35},
+ {id:48491486,t:"FPS.cob: A first person shooter in COBOL",u:"https://github.com/icitry/FPS.cob",p:80,a:"MBCook",h:5,c:49},
+ {id:48428959,t:"Discovery of Cold War-era rare Eastern Bloc computers in a German hangar",u:"https://computerhistory.org/stories/explorers-of-the-lost-computers/",p:72,a:"andrewstuart",h:6,c:16},
+ {id:48462928,t:"Show HN: Claw Patrol, a security firewall for agents",u:"https://github.com/denoland/clawpatrol",p:68,a:"rough-sea",h:5,c:22},
+ {id:48447598,t:"Ear Training Practice Exercises",u:"https://tonedear.com/",p:62,a:"mattbit",h:2,c:39},
+ {id:48468495,t:"Programming a GBA Game on an iPhone",u:"https://blog.adamledoux.net/posts/2026-06-08-programming-a-gba-game-on-an-iphone.html",p:33,a:"akkartik",h:3,c:4},
+ {id:48493564,t:"Apple didn't revolutionize power supplies; new transistors did",u:"https://www.righto.com/2012/02/apple-didnt-revolutionize-power.html",p:28,a:"geerlingguy",h:3,c:2},
+ {id:48495197,t:"Who Runs the Ransomware Group 'The Gentlemen?'",u:"https://krebsonsecurity.com/2026/06/who-runs-the-ransomware-group-the-gentlemen/",p:26,a:"Bender",h:1,c:1},
+ {id:48495751,t:"Travel Locally, Where You Are",u:"https://www.ssp.sh/brain/travel-where-you-are/",p:25,a:"zazuke",h:1,c:7},
+ {id:48493447,t:"Building agents without harness engineering",u:"https://rajitkhanna.com/agents/",p:19,a:"rajit",h:1,c:4},
+ {id:48495818,t:"I stopped tracking my time. Now I can't focus",u:"https://newsletter.masilotti.com/p/i-stopped-tracking-my-time-now-i",p:14,a:"joemasilotti",h:1,c:9},
+].map(s=>({
+  objectID:String(s.id), title:s.t, url:s.u, points:s.p, author:s.a,
+  created_at_i: Math.floor(Date.now()/1000) - s.h*3600, num_comments:s.c
+}));
+
+/* ============ État ============ */
+const API = "https://hn.algolia.com/api/v1";
+const state = { feed:"top", q:"", range:"all", sort:"points", page:0, pages:1, live:true };
+const $ = id => document.getElementById(id);
+const list=$("list"), more=$("more"), dot=$("dot"), statusTxt=$("statusTxt");
+
+const FEED_TAGS = { top:"front_page", new:"story", best:"story", ask:"ask_hn", show:"show_hn", jobs:"job" };
+
+function rangeFilter(){
+  if(state.range==="all") return "";
+  const now=Math.floor(Date.now()/1000);
+  const span={ "24h":86400, week:7*86400, month:30*86400 }[state.range];
+  return `&numericFilters=created_at_i>${now-span}`;
+}
+
+function buildURL(){
+  // « Nouveautés » et tri « Plus récent » utilisent search_by_date ; le reste, la pertinence/points
+  const byDate = state.feed==="new" || state.sort==="date";
+  const ep = byDate ? "search_by_date" : "search";
+  const q  = encodeURIComponent(state.q);
+  return `${API}/${ep}?tags=${FEED_TAGS[state.feed]}&query=${q}&hitsPerPage=30&page=${state.page}${rangeFilter()}`;
+}
+
+/* ============ Rendu ============ */
+function timeAgo(ts){
+  const s=Math.max(1,Math.floor(Date.now()/1000-ts));
+  if(s<3600) return `il y a ${Math.floor(s/60)||1} min`;
+  if(s<86400) return `il y a ${Math.floor(s/3600)} h`;
+  if(s<30*86400) return `il y a ${Math.floor(s/86400)} j`;
+  return new Date(ts*1000).toLocaleDateString("fr-FR",{day:"numeric",month:"short",year:"numeric"});
+}
+function domainOf(u){ try{ return new URL(u).hostname.replace(/^www\./,"") }catch{ return null } }
+const esc = s => (s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function render(hits, append){
+  if(!append) list.innerHTML="";
+  if(!hits.length && !append){
+    list.innerHTML = `<div class="state"><strong>Aucun résultat</strong>Essayez d'autres mots-clés ou élargissez la période.</div>`;
+    return;
+  }
+  const max = Math.max(...hits.map(h=>h.points||0), 1);
+  const start = list.querySelectorAll(".story").length;
+  const frag = document.createDocumentFragment();
+  hits.forEach((h,i)=>{
+    const item=`https://news.ycombinator.com/item?id=${h.objectID}`;
+    const url = h.url || item;
+    const dom = domainOf(h.url);
+    const el=document.createElement("article");
+    el.className="story";
+    el.innerHTML = `
+      <div class="rank">${start+i+1}</div>
+      <div>
+        <h2><a href="${esc(url)}" target="_blank" rel="noopener">${esc(h.title||h.story_title||"(sans titre)")}</a>${dom?`<span class="domain">${esc(dom)}</span>`:""}</h2>
+        <div class="meta">
+          <span class="pts">▲ ${h.points??0} pts</span>
+          <span class="sep">·</span>
+          <a href="https://news.ycombinator.com/user?id=${esc(h.author)}" target="_blank" rel="noopener">${esc(h.author)}</a>
+          <span class="sep">·</span>
+          <span>${timeAgo(h.created_at_i)}</span>
+          <span class="sep">·</span>
+          <a href="${item}" target="_blank" rel="noopener">💬 ${h.num_comments??0} commentaires</a>
+        </div>
+      </div>
+      <div class="heat" style="transform:scaleX(${Math.max(.04,(h.points||0)/max)})"></div>`;
+    frag.appendChild(el);
+  });
+  list.appendChild(frag);
+}
+
+/* ============ Chargement ============ */
+let debounce;
+async function load(append=false){
+  if(!append){ state.page=0; list.innerHTML=`<div class="state"><div class="spinner"></div>Chargement…</div>`; }
+  more.disabled=true;
+  try{
+    const r = await fetch(buildURL());
+    if(!r.ok) throw new Error(r.status);
+    const data = await r.json();
+    let hits = data.hits.filter(h=>h.title||h.story_title);
+    if(state.feed==="best") hits=[...hits].sort((a,b)=>(b.points||0)-(a.points||0));
+    state.pages=data.nbPages; state.live=true;
+    render(hits, append);
+    dot.classList.remove("offline");
+    statusTxt.textContent=`${data.nbHits.toLocaleString("fr-FR")} résultats · en direct`;
+    more.hidden = state.page >= state.pages-1;
+  }catch(e){
+    state.live=false;
+    dot.classList.add("offline");
+    statusTxt.textContent="hors ligne · instantané du 11 juin 2026";
+    let hits=[...SNAPSHOT];
+    const q=state.q.toLowerCase();
+    if(q) hits=hits.filter(h=>h.title.toLowerCase().includes(q));
+    if(state.feed==="ask")  hits=hits.filter(h=>/^ask hn/i.test(h.title));
+    if(state.feed==="show") hits=hits.filter(h=>/^show hn/i.test(h.title));
+    if(state.feed==="jobs") hits=[];
+    if(state.sort==="date"||state.feed==="new") hits.sort((a,b)=>b.created_at_i-a.created_at_i);
+    else hits.sort((a,b)=>b.points-a.points);
+    render(hits,false);
+    more.hidden=true;
+    if(state.feed==="jobs" && !hits.length)
+      list.innerHTML=`<div class="state"><strong>Mode hors ligne</strong>Les offres d'emploi nécessitent la connexion à l'API. Ouvrez ce fichier dans votre navigateur pour les données en direct.</div>`;
+  }finally{ more.disabled=false; }
+}
+
+/* ============ Événements ============ */
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.addEventListener("click",()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected","false"));
+    tab.setAttribute("aria-selected","true");
+    state.feed=tab.dataset.feed;
+    load();
+  });
+});
+$("q").addEventListener("input",e=>{
+  clearTimeout(debounce);
+  debounce=setTimeout(()=>{ state.q=e.target.value.trim(); load(); },350);
+});
+$("range").addEventListener("change",e=>{ state.range=e.target.value; load(); });
+$("sort").addEventListener("change",e=>{ state.sort=e.target.value; load(); });
+more.addEventListener("click",()=>{ state.page++; load(true); });
+
+load();
+
+/* ============ PWA : enregistrement du service worker ============ */
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(err =>
+      console.warn("Service worker non enregistré :", err)
+    );
+  });
+}
+</script>
+</body>
+</html>
