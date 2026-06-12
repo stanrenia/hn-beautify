@@ -182,6 +182,71 @@
   }
   footer a{color:var(--orange)}
 
+  /* ---------- Vue commentaires ---------- */
+  .back{
+    display:inline-flex;align-items:center;gap:6px;
+    font:inherit;font-size:13px;font-weight:600;color:var(--slate);
+    background:var(--surface);border:1px solid var(--line);border-radius:99px;
+    padding:7px 16px;cursor:pointer;margin-bottom:14px;
+    transition:border-color .15s,color .15s;
+  }
+  .back:hover{border-color:var(--orange);color:var(--orange)}
+  .back:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+  .item-head{
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;margin-bottom:16px;
+  }
+  .item-head h2{
+    font-family:'Space Grotesk',sans-serif;font-weight:500;
+    font-size:17px;line-height:1.3;letter-spacing:-.01em;
+  }
+  .item-head h2 a:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--orange)}
+  .item-head .meta{margin-top:5px}
+  .item-text{
+    margin-top:10px;font-size:13.5px;color:var(--ink);
+  }
+  .cthread{margin-top:4px}
+  .comment{padding:7px 0 1px}
+  .chead{
+    display:flex;align-items:center;gap:6px;
+    font-size:11.5px;color:var(--slate);
+  }
+  .chead .author{font-weight:600;color:var(--ink)}
+  .chead .author.op{color:var(--orange)}
+  .chead a:hover{color:var(--orange)}
+  .toggle{
+    appearance:none;border:none;background:var(--bg);cursor:pointer;
+    font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:700;
+    color:var(--slate);border:1px solid var(--line);border-radius:6px;
+    padding:0 6px;line-height:16px;margin-left:auto;
+    transition:color .15s,border-color .15s;
+  }
+  .toggle:hover{color:var(--orange);border-color:var(--orange)}
+  .toggle:focus-visible{outline:2px solid var(--orange);outline-offset:1px}
+  .cbody{
+    font-size:13.5px;line-height:1.55;margin-top:3px;
+    overflow-wrap:break-word;
+  }
+  .cbody p{margin:6px 0 0}
+  .cbody p:first-child{margin-top:0}
+  .cbody a{color:var(--orange);text-decoration:underline;text-underline-offset:2px;text-decoration-color:rgba(255,102,0,.4)}
+  .cbody pre{
+    background:var(--bg);border:1px solid var(--line);border-radius:8px;
+    padding:8px 10px;margin:6px 0 0;overflow-x:auto;
+    font-size:12px;line-height:1.45;
+  }
+  .cbody code{font-family:'JetBrains Mono',monospace;font-size:.92em}
+  .cbody blockquote{
+    border-left:3px solid var(--line);padding-left:10px;margin:6px 0 0;color:var(--slate);
+  }
+  .kids{
+    margin-left:7px;padding-left:13px;
+    border-left:2px solid var(--line);
+  }
+  .kids:hover{border-left-color:#D8DBE1}
+  .collapsed > .cbody, .collapsed > .kids{display:none}
+  .collapsed .chead{opacity:.65}
+
   @media (prefers-reduced-motion:reduce){
     *{animation:none!important;transition:none!important}
   }
@@ -235,8 +300,11 @@
 </div>
 
 <main>
-  <div id="list" aria-live="polite"></div>
-  <button class="more" id="more" hidden>Charger plus</button>
+  <div id="listView">
+    <div id="list" aria-live="polite"></div>
+    <button class="more" id="more" hidden>Charger plus</button>
+  </div>
+  <section id="itemView" hidden aria-live="polite"></section>
 </main>
 
 <footer>
@@ -336,7 +404,7 @@ function render(hits, append){
           <span class="sep">·</span>
           <span>${timeAgo(h.created_at_i)}</span>
           <span class="sep">·</span>
-          <a href="${item}" target="_blank" rel="noopener">💬 ${h.num_comments??0} commentaires</a>
+          <a href="#item/${h.objectID}">💬 ${h.num_comments??0} commentaires</a>
         </div>
       </div>
       <div class="heat" style="transform:scaleX(${Math.max(.04,(h.points||0)/max)})"></div>`;
@@ -398,6 +466,123 @@ $("sort").addEventListener("change",e=>{ state.sort=e.target.value; load(); });
 more.addEventListener("click",()=>{ state.page++; load(true); });
 
 load();
+
+/* ============ Vue commentaires ============ */
+const listView=$("listView"), itemView=$("itemView");
+const optionsBar=document.querySelector(".options");
+
+function route(){
+  const m=location.hash.match(/^#item\/(\d+)/);
+  if(m){ showItem(m[1]); }
+  else{
+    itemView.hidden=true; itemView.innerHTML="";
+    listView.hidden=false; optionsBar.style.display="";
+  }
+}
+window.addEventListener("hashchange",route);
+
+async function showItem(id){
+  listView.hidden=true; optionsBar.style.display="none";
+  itemView.hidden=false;
+  itemView.innerHTML=`<button class="back" onclick="location.hash=''">← Retour</button>
+    <div class="state"><div class="spinner"></div>Chargement de la discussion…</div>`;
+  try{
+    const r=await fetch(`${API}/items/${id}`);
+    if(!r.ok) throw new Error(r.status);
+    renderItem(await r.json());
+  }catch(e){
+    itemView.innerHTML=`<button class="back" onclick="location.hash=''">← Retour</button>
+      <div class="state"><strong>Discussion indisponible</strong>
+      Impossible de charger les commentaires (hors ligne ?).<br>
+      <a href="https://news.ycombinator.com/item?id=${id}" target="_blank" rel="noopener" style="color:var(--orange)">Ouvrir sur Hacker News →</a></div>`;
+  }
+}
+
+/* Assainissement du HTML renvoyé par l'API (balises sûres uniquement) */
+const ALLOWED={P:1,A:1,I:1,EM:1,B:1,STRONG:1,CODE:1,PRE:1,BLOCKQUOTE:1,BR:1,UL:1,OL:1,LI:1};
+function sanitize(html){
+  const doc=new DOMParser().parseFromString(html||"","text/html");
+  const walk=node=>{
+    for(const ch of [...node.childNodes]){
+      if(ch.nodeType!==1) continue;
+      if(!ALLOWED[ch.tagName]){
+        const kids=[...ch.childNodes];
+        ch.replaceWith(...kids);
+        kids.forEach(k=>{ if(k.nodeType===1) walk(k.parentNode); });
+        continue;
+      }
+      for(const a of [...ch.attributes]){
+        if(!(ch.tagName==="A" && a.name==="href" && /^https?:/i.test(a.value))) ch.removeAttribute(a.name);
+      }
+      if(ch.tagName==="A"){ ch.setAttribute("target","_blank"); ch.setAttribute("rel","noopener nofollow"); }
+      walk(ch);
+    }
+  };
+  walk(doc.body);
+  return doc.body.innerHTML;
+}
+
+const countAll=c=>(c.children||[]).reduce((n,k)=>n+1+countAll(k),0);
+
+function commentNode(c, op){
+  if(!c.author && !(c.children||[]).length) return null;     // commentaire supprimé sans réponses
+  const el=document.createElement("div");
+  el.className="comment";
+  const n=countAll(c);
+  el.innerHTML=`
+    <div class="chead">
+      <a class="author${c.author===op?" op":""}" href="https://news.ycombinator.com/user?id=${esc(c.author||"")}" target="_blank" rel="noopener">${esc(c.author||"[supprimé]")}</a>
+      <span class="sep">·</span><span>${timeAgo(c.created_at_i)}</span>
+      <button class="toggle" aria-expanded="true" title="Replier / déplier">[–]</button>
+    </div>
+    <div class="cbody">${c.author?sanitize(c.text):"<p><i>[commentaire supprimé]</i></p>"}</div>`;
+  if((c.children||[]).length){
+    const kids=document.createElement("div");
+    kids.className="kids";
+    c.children
+      .sort((a,b)=>a.created_at_i-b.created_at_i)
+      .forEach(k=>{ const kn=commentNode(k,op); if(kn) kids.appendChild(kn); });
+    el.appendChild(kids);
+  }
+  const btn=el.querySelector(".toggle");
+  btn.addEventListener("click",()=>{
+    const off=el.classList.toggle("collapsed");
+    btn.textContent=off?`[+${n+1}]`:"[–]";
+    btn.setAttribute("aria-expanded",String(!off));
+  });
+  return el;
+}
+
+function renderItem(it){
+  const dom=domainOf(it.url);
+  const total=countAll(it);
+  itemView.innerHTML=`<button class="back" onclick="location.hash=''">← Retour</button>
+    <div class="item-head">
+      <h2><a href="${esc(it.url||`https://news.ycombinator.com/item?id=${it.id}`)}" target="_blank" rel="noopener">${esc(it.title||"(sans titre)")}</a>${dom?`<span class="domain">${esc(dom)}</span>`:""}</h2>
+      <div class="meta">
+        <span class="pts">▲ ${it.points??0} pts</span>
+        <span class="sep">·</span>
+        <a href="https://news.ycombinator.com/user?id=${esc(it.author)}" target="_blank" rel="noopener">${esc(it.author)}</a>
+        <span class="sep">·</span><span>${timeAgo(it.created_at_i)}</span>
+        <span class="sep">·</span><span>💬 ${total} commentaires</span>
+        <span class="sep">·</span>
+        <a href="https://news.ycombinator.com/item?id=${it.id}" target="_blank" rel="noopener">voir sur HN ↗</a>
+      </div>
+      ${it.text?`<div class="item-text">${sanitize(it.text)}</div>`:""}
+    </div>
+    <div class="cthread"></div>`;
+  const thread=itemView.querySelector(".cthread");
+  if(!(it.children||[]).length){
+    thread.innerHTML=`<div class="state"><strong>Aucun commentaire</strong>Soyez le premier à réagir sur HN.</div>`;
+    return;
+  }
+  it.children
+    .sort((a,b)=>a.created_at_i-b.created_at_i)
+    .forEach(c=>{ const n=commentNode(c,it.author); if(n) thread.appendChild(n); });
+  window.scrollTo({top:0});
+}
+
+route();
 
 /* ============ PWA : enregistrement du service worker ============ */
 if ("serviceWorker" in navigator && location.protocol !== "file:") {
