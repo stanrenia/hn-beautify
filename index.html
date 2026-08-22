@@ -184,39 +184,51 @@
   footer a{color:var(--orange)}
 
   /* ---------- Vue commentaires ---------- */
+  /* Bandeau collant : flèche de retour et titre sur une même ligne.
+     Le fond de la bande masque les commentaires qui défilent dessous. */
   .back-sentinel{height:1px;margin-bottom:-1px}
-  .back-bar{
+  .item-bar{
     position:sticky;top:var(--header-h);z-index:15;
-    margin:0 -20px 14px;padding:10px 20px 11px;
+    margin:0 -20px;padding:8px 20px 12px;
     background:var(--bg);
-    border-bottom:1px solid transparent;
+  }
+  /* Grille : la flèche est centrée sur le titre (1re rangée), les
+     métadonnées se glissent sous le titre (2e rangée, même colonne). */
+  .item-bar-inner{
+    display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;
+    column-gap:11px;
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    padding:9px 14px 9px 10px;
     transition:border-color .15s,box-shadow .15s;
   }
-  .back-bar.stuck{
-    border-bottom-color:var(--line);
-    box-shadow:0 6px 14px -12px rgba(22,24,29,.5);
+  .item-bar.stuck .item-bar-inner{
+    border-color:#DDE0E6;
+    box-shadow:0 10px 22px -16px rgba(22,24,29,.6);
   }
   .back{
-    display:inline-flex;align-items:center;gap:6px;
-    font:inherit;font-size:13px;font-weight:600;color:var(--slate);
-    background:var(--surface);border:1px solid var(--line);border-radius:99px;
-    padding:7px 16px;cursor:pointer;
-    transition:border-color .15s,color .15s;
+    display:grid;place-items:center;flex-shrink:0;
+    width:34px;height:34px;border-radius:50%;
+    background:var(--bg);border:1px solid var(--line);color:var(--slate);
+    cursor:pointer;transition:border-color .15s,color .15s,background .15s;
   }
-  .back:hover{border-color:var(--orange);color:var(--orange)}
+  .back svg{
+    width:17px;height:17px;fill:none;stroke:currentColor;
+    stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;
+  }
+  .back:hover{border-color:var(--orange);color:var(--orange);background:var(--orange-soft)}
   .back:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
-  .item-head{
-    background:var(--surface);border:1px solid var(--line);border-radius:10px;
-    padding:14px 16px;margin-bottom:16px;
-  }
-  .item-head h2{
+  .item-title{
+    grid-area:1/2;min-width:0;
     font-family:'Space Grotesk',sans-serif;font-weight:500;
-    font-size:17px;line-height:1.3;letter-spacing:-.01em;
+    font-size:16px;line-height:1.3;letter-spacing:-.01em;
   }
-  .item-head h2 a:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--orange)}
-  .item-head .meta{margin-top:5px}
+  .item-title a:hover{text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--orange)}
+  .item-title .loading{color:var(--slate);font-weight:400}
+  .item-meta{grid-area:2/2;margin-top:4px}
   .item-text{
-    margin-top:10px;font-size:13.5px;color:var(--ink);
+    background:var(--surface);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;margin-bottom:16px;
+    font-size:13.5px;color:var(--ink);
   }
   .cthread{margin-top:4px}
   .comment{padding:7px 0 1px}
@@ -267,6 +279,9 @@
     .story{grid-template-columns:30px 1fr;padding:7px 10px 6px}
     .rank{font-size:13px}
     .search{max-width:none;min-width:140px}
+    .item-bar-inner{gap:9px;padding:8px 12px 8px 9px}
+    .back{width:32px;height:32px}
+    .item-title{font-size:14.5px}
   }
 </style>
 </head>
@@ -494,8 +509,15 @@ function route(){
 }
 window.addEventListener("hashchange",route);
 
-/* Barre de retour : collante sous l'en-tête, donc toujours atteignable */
-const BACK_BAR=`<div class="back-sentinel"></div><div class="back-bar"><button class="back" onclick="location.hash=''">← Retour</button></div>`;
+/* Bandeau collant sous l'en-tête : flèche de retour + titre de l'article,
+   donc les deux restent atteignables et visibles quel que soit le défilement. */
+const ARROW=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>`;
+const itemBar = (titleHTML, metaHTML="") => `<div class="back-sentinel"></div>
+  <div class="item-bar"><div class="item-bar-inner">
+    <button class="back" onclick="location.hash=''" aria-label="Retour à la liste" title="Retour à la liste">${ARROW}</button>
+    <h2 class="item-title">${titleHTML}</h2>
+    ${metaHTML?`<div class="meta item-meta">${metaHTML}</div>`:""}
+  </div></div>`;
 
 /* L'en-tête est collant et sa hauteur varie (recherche/onglets qui passent à la
    ligne) : on la reporte dans --header-h pour caler la barre de retour dessous. */
@@ -511,7 +533,7 @@ if(window.ResizeObserver) new ResizeObserver(syncHeaderHeight).observe(headerEl)
 let backBarObserver=null;
 function watchBackBar(){
   if(backBarObserver){ backBarObserver.disconnect(); backBarObserver=null; }
-  const sentinel=itemView.querySelector(".back-sentinel"), bar=itemView.querySelector(".back-bar");
+  const sentinel=itemView.querySelector(".back-sentinel"), bar=itemView.querySelector(".item-bar");
   if(!sentinel||!bar||!window.IntersectionObserver) return;
   backBarObserver=new IntersectionObserver(
     ([e])=>bar.classList.toggle("stuck",!e.isIntersecting),
@@ -523,7 +545,7 @@ function watchBackBar(){
 async function showItem(id){
   listView.hidden=true; optionsBar.style.display="none";
   itemView.hidden=false;
-  itemView.innerHTML=`${BACK_BAR}
+  itemView.innerHTML=`${itemBar('<span class="loading">Discussion…</span>')}
     <div class="state"><div class="spinner"></div>Chargement de la discussion…</div>`;
   watchBackBar();
   try{
@@ -531,7 +553,7 @@ async function showItem(id){
     if(!r.ok) throw new Error(r.status);
     renderItem(await r.json());
   }catch(e){
-    itemView.innerHTML=`${BACK_BAR}
+    itemView.innerHTML=`${itemBar('<span class="loading">Discussion indisponible</span>')}
       <div class="state"><strong>Discussion indisponible</strong>
       Impossible de charger les commentaires (hors ligne ?).<br>
       <a href="https://news.ycombinator.com/item?id=${id}" target="_blank" rel="noopener" style="color:var(--orange)">Ouvrir sur Hacker News →</a></div>`;
@@ -597,20 +619,16 @@ function commentNode(c, op){
 function renderItem(it){
   const dom=domainOf(it.url);
   const total=countAll(it);
-  itemView.innerHTML=`${BACK_BAR}
-    <div class="item-head">
-      <h2><a href="${esc(it.url||`https://news.ycombinator.com/item?id=${it.id}`)}" target="_blank" rel="noopener">${esc(it.title||"(sans titre)")}</a>${dom?`<span class="domain">${esc(dom)}</span>`:""}</h2>
-      <div class="meta">
-        <span class="pts">▲ ${it.points??0} pts</span>
-        <span class="sep">·</span>
-        <a href="https://news.ycombinator.com/user?id=${esc(it.author)}" target="_blank" rel="noopener">${esc(it.author)}</a>
-        <span class="sep">·</span><span>${timeAgo(it.created_at_i)}</span>
-        <span class="sep">·</span><span>💬 ${total} commentaires</span>
-        <span class="sep">·</span>
-        <a href="https://news.ycombinator.com/item?id=${it.id}" target="_blank" rel="noopener">voir sur HN ↗</a>
-      </div>
-      ${it.text?`<div class="item-text">${sanitize(it.text)}</div>`:""}
-    </div>
+  const titleHTML=`<a href="${esc(it.url||`https://news.ycombinator.com/item?id=${it.id}`)}" target="_blank" rel="noopener">${esc(it.title||"(sans titre)")}</a>${dom?`<span class="domain">${esc(dom)}</span>`:""}`;
+  const metaHTML=`<span class="pts">▲ ${it.points??0} pts</span>
+    <span class="sep">·</span>
+    <a href="https://news.ycombinator.com/user?id=${esc(it.author)}" target="_blank" rel="noopener">${esc(it.author)}</a>
+    <span class="sep">·</span><span>${timeAgo(it.created_at_i)}</span>
+    <span class="sep">·</span><span>💬 ${total} commentaires</span>
+    <span class="sep">·</span>
+    <a href="https://news.ycombinator.com/item?id=${it.id}" target="_blank" rel="noopener">voir sur HN ↗</a>`;
+  itemView.innerHTML=`${itemBar(titleHTML, metaHTML)}
+    ${it.text?`<div class="item-text">${sanitize(it.text)}</div>`:""}
     <div class="cthread"></div>`;
   watchBackBar();
   window.scrollTo({top:0});
