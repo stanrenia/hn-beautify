@@ -1,5 +1,5 @@
 /* Service worker — HN Moderne */
-const VERSION = "hn-moderne-v3";
+const VERSION = "hn-moderne-v4";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 
