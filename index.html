@@ -23,6 +23,7 @@
     --orange:#FF6600;
     --orange-soft:#FFF1E8;
     --radius:14px;
+    --header-h:96px;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   html{scroll-behavior:smooth}
@@ -183,11 +184,23 @@
   footer a{color:var(--orange)}
 
   /* ---------- Vue commentaires ---------- */
+  .back-sentinel{height:1px;margin-bottom:-1px}
+  .back-bar{
+    position:sticky;top:var(--header-h);z-index:15;
+    margin:0 -20px 14px;padding:10px 20px 11px;
+    background:var(--bg);
+    border-bottom:1px solid transparent;
+    transition:border-color .15s,box-shadow .15s;
+  }
+  .back-bar.stuck{
+    border-bottom-color:var(--line);
+    box-shadow:0 6px 14px -12px rgba(22,24,29,.5);
+  }
   .back{
     display:inline-flex;align-items:center;gap:6px;
     font:inherit;font-size:13px;font-weight:600;color:var(--slate);
     background:var(--surface);border:1px solid var(--line);border-radius:99px;
-    padding:7px 16px;cursor:pointer;margin-bottom:14px;
+    padding:7px 16px;cursor:pointer;
     transition:border-color .15s,color .15s;
   }
   .back:hover{border-color:var(--orange);color:var(--orange)}
@@ -481,20 +494,48 @@ function route(){
 }
 window.addEventListener("hashchange",route);
 
+/* Barre de retour : collante sous l'en-tête, donc toujours atteignable */
+const BACK_BAR=`<div class="back-sentinel"></div><div class="back-bar"><button class="back" onclick="location.hash=''">← Retour</button></div>`;
+
+/* L'en-tête est collant et sa hauteur varie (recherche/onglets qui passent à la
+   ligne) : on la reporte dans --header-h pour caler la barre de retour dessous. */
+const headerEl=document.querySelector("header");
+function syncHeaderHeight(){
+  document.documentElement.style.setProperty("--header-h", headerEl.offsetHeight+"px");
+}
+syncHeaderHeight();
+window.addEventListener("resize",syncHeaderHeight);
+if(window.ResizeObserver) new ResizeObserver(syncHeaderHeight).observe(headerEl);
+
+/* Ombre + filet sous la barre uniquement lorsqu'elle est décollée du haut */
+let backBarObserver=null;
+function watchBackBar(){
+  if(backBarObserver){ backBarObserver.disconnect(); backBarObserver=null; }
+  const sentinel=itemView.querySelector(".back-sentinel"), bar=itemView.querySelector(".back-bar");
+  if(!sentinel||!bar||!window.IntersectionObserver) return;
+  backBarObserver=new IntersectionObserver(
+    ([e])=>bar.classList.toggle("stuck",!e.isIntersecting),
+    {rootMargin:`-${headerEl.offsetHeight+2}px 0px 0px 0px`}
+  );
+  backBarObserver.observe(sentinel);
+}
+
 async function showItem(id){
   listView.hidden=true; optionsBar.style.display="none";
   itemView.hidden=false;
-  itemView.innerHTML=`<button class="back" onclick="location.hash=''">← Retour</button>
+  itemView.innerHTML=`${BACK_BAR}
     <div class="state"><div class="spinner"></div>Chargement de la discussion…</div>`;
+  watchBackBar();
   try{
     const r=await fetch(`${API}/items/${id}`);
     if(!r.ok) throw new Error(r.status);
     renderItem(await r.json());
   }catch(e){
-    itemView.innerHTML=`<button class="back" onclick="location.hash=''">← Retour</button>
+    itemView.innerHTML=`${BACK_BAR}
       <div class="state"><strong>Discussion indisponible</strong>
       Impossible de charger les commentaires (hors ligne ?).<br>
       <a href="https://news.ycombinator.com/item?id=${id}" target="_blank" rel="noopener" style="color:var(--orange)">Ouvrir sur Hacker News →</a></div>`;
+    watchBackBar();
   }
 }
 
@@ -556,7 +597,7 @@ function commentNode(c, op){
 function renderItem(it){
   const dom=domainOf(it.url);
   const total=countAll(it);
-  itemView.innerHTML=`<button class="back" onclick="location.hash=''">← Retour</button>
+  itemView.innerHTML=`${BACK_BAR}
     <div class="item-head">
       <h2><a href="${esc(it.url||`https://news.ycombinator.com/item?id=${it.id}`)}" target="_blank" rel="noopener">${esc(it.title||"(sans titre)")}</a>${dom?`<span class="domain">${esc(dom)}</span>`:""}</h2>
       <div class="meta">
@@ -571,6 +612,8 @@ function renderItem(it){
       ${it.text?`<div class="item-text">${sanitize(it.text)}</div>`:""}
     </div>
     <div class="cthread"></div>`;
+  watchBackBar();
+  window.scrollTo({top:0});
   const thread=itemView.querySelector(".cthread");
   if(!(it.children||[]).length){
     thread.innerHTML=`<div class="state"><strong>Aucun commentaire</strong>Soyez le premier à réagir sur HN.</div>`;
@@ -579,7 +622,6 @@ function renderItem(it){
   it.children
     .sort((a,b)=>a.created_at_i-b.created_at_i)
     .forEach(c=>{ const n=commentNode(c,it.author); if(n) thread.appendChild(n); });
-  window.scrollTo({top:0});
 }
 
 route();
