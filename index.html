@@ -71,6 +71,13 @@
   }
   .search input:focus{border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-soft)}
   .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--slate)}
+  .lang{
+    font:inherit;font-size:13px;color:var(--ink);
+    border:1px solid var(--line);background:var(--surface);
+    border-radius:99px;padding:7px 10px;cursor:pointer;outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .lang:focus-visible{border-color:var(--orange);box-shadow:0 0 0 3px var(--orange-soft)}
 
   /* Onglets de filtre */
   .tabs{
@@ -293,52 +300,54 @@
       <div class="logo">Y</div>
       <div>
         <h1>Hacker News</h1>
-        <div class="sub">lecture moderne &amp; élégante</div>
+        <div class="sub" data-i18n="subtitle">lecture moderne &amp; élégante</div>
       </div>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <input id="q" type="search" placeholder="Rechercher des articles…" aria-label="Rechercher">
+        <input id="q" type="search" placeholder="Rechercher des articles…" aria-label="Rechercher" data-i18n-attr="placeholder:searchPh,aria-label:searchLabel">
       </div>
+      <select id="lang" class="lang" aria-label="Langue" data-i18n-attr="aria-label:langLabel,title:langLabel"></select>
     </div>
-    <nav class="tabs" role="tablist" aria-label="Sections">
-      <button class="tab" role="tab" data-feed="top"  aria-selected="true">À la une</button>
-      <button class="tab" role="tab" data-feed="new"  aria-selected="false">Nouveautés</button>
-      <button class="tab" role="tab" data-feed="best" aria-selected="false">Meilleurs</button>
-      <button class="tab" role="tab" data-feed="ask"  aria-selected="false">Ask HN</button>
-      <button class="tab" role="tab" data-feed="show" aria-selected="false">Show HN</button>
-      <button class="tab" role="tab" data-feed="jobs" aria-selected="false">Emplois</button>
+    <nav class="tabs" role="tablist" aria-label="Sections" data-i18n-attr="aria-label:tabsLabel">
+      <button class="tab" role="tab" data-feed="top"  aria-selected="true" data-i18n="tab.top">À la une</button>
+      <button class="tab" role="tab" data-feed="new"  aria-selected="false" data-i18n="tab.new">Nouveautés</button>
+      <button class="tab" role="tab" data-feed="best" aria-selected="false" data-i18n="tab.best">Meilleurs</button>
+      <button class="tab" role="tab" data-feed="ask"  aria-selected="false" data-i18n="tab.ask">Ask HN</button>
+      <button class="tab" role="tab" data-feed="show" aria-selected="false" data-i18n="tab.show">Show HN</button>
+      <button class="tab" role="tab" data-feed="jobs" aria-selected="false" data-i18n="tab.jobs">Emplois</button>
     </nav>
   </div>
 </header>
 
 <div class="options">
-  <label for="range">Période</label>
+  <label for="range" data-i18n="rangeLabel">Période</label>
   <select id="range">
-    <option value="all">Toujours</option>
-    <option value="24h">24 heures</option>
-    <option value="week">Cette semaine</option>
-    <option value="month">Ce mois-ci</option>
+    <option value="all" data-i18n="range.all">Toujours</option>
+    <option value="24h" data-i18n="range.24h">24 heures</option>
+    <option value="week" data-i18n="range.week">Cette semaine</option>
+    <option value="month" data-i18n="range.month">Ce mois-ci</option>
   </select>
-  <label for="sort">Tri</label>
+  <label for="sort" data-i18n="sortLabel">Tri</label>
   <select id="sort">
-    <option value="points">Popularité</option>
-    <option value="date">Plus récent</option>
+    <option value="points" data-i18n="sort.points">Popularité</option>
+    <option value="date" data-i18n="sort.date">Plus récent</option>
   </select>
-  <span class="count" id="status"><span class="live-dot" id="dot"></span><span id="statusTxt">Chargement…</span></span>
+  <span class="count" id="status"><span class="live-dot" id="dot"></span><span id="statusTxt" data-i18n="loading">Chargement…</span></span>
 </div>
 
 <main>
   <div id="listView">
     <div id="list" aria-live="polite"></div>
-    <button class="more" id="more" hidden>Charger plus</button>
+    <button class="more" id="more" hidden data-i18n="loadMore">Charger plus</button>
   </div>
   <section id="itemView" hidden aria-live="polite"></section>
 </main>
 
-<footer>
+<footer data-i18n-html="footer">
   Données : <a href="https://news.ycombinator.com" target="_blank" rel="noopener">news.ycombinator.com</a> via l'API publique HN Search (Algolia). Les liens « commentaires » ouvrent la discussion d'origine.
 </footer>
 
+<script src="i18n.js"></script>
 <script>
 /* ============ Données de secours (instantané réel du 11 juin 2026) ============ */
 const SNAPSHOT = [
@@ -372,6 +381,8 @@ const SNAPSHOT = [
   created_at_i: Math.floor(Date.now()/1000) - s.h*3600, num_comments:s.c
 }));
 
+const SNAPSHOT_DATE = new Date(2026, 5, 11);
+
 /* ============ État ============ */
 const API = "https://hn.algolia.com/api/v1";
 const state = { feed:"top", q:"", range:"all", sort:"points", page:0, pages:1, live:true };
@@ -398,10 +409,11 @@ function buildURL(){
 /* ============ Rendu ============ */
 function timeAgo(ts){
   const s=Math.max(1,Math.floor(Date.now()/1000-ts));
-  if(s<3600) return `il y a ${Math.floor(s/60)||1} min`;
-  if(s<86400) return `il y a ${Math.floor(s/3600)} h`;
-  if(s<30*86400) return `il y a ${Math.floor(s/86400)} j`;
-  return new Date(ts*1000).toLocaleDateString("fr-FR",{day:"numeric",month:"short",year:"numeric"});
+  const rtf=new Intl.RelativeTimeFormat(lang,{numeric:"auto",style:"short"});
+  if(s<3600) return rtf.format(-(Math.floor(s/60)||1),"minute");
+  if(s<86400) return rtf.format(-Math.floor(s/3600),"hour");
+  if(s<30*86400) return rtf.format(-Math.floor(s/86400),"day");
+  return new Date(ts*1000).toLocaleDateString(lang,{day:"numeric",month:"short",year:"numeric"});
 }
 function domainOf(u){ try{ return new URL(u).hostname.replace(/^www\./,"") }catch{ return null } }
 const esc = s => (s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -409,7 +421,7 @@ const esc = s => (s||"").replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt
 function render(hits, append){
   if(!append) list.innerHTML="";
   if(!hits.length && !append){
-    list.innerHTML = `<div class="state"><strong>Aucun résultat</strong>Essayez d'autres mots-clés ou élargissez la période.</div>`;
+    list.innerHTML = `<div class="state"><strong>${t("noResults")}</strong>${t("noResultsHint")}</div>`;
     return;
   }
   const max = Math.max(...hits.map(h=>h.points||0), 1);
@@ -424,15 +436,15 @@ function render(hits, append){
     el.innerHTML = `
       <div class="rank">${start+i+1}</div>
       <div>
-        <h2><a href="${esc(url)}" target="_blank" rel="noopener">${esc(h.title||h.story_title||"(sans titre)")}</a>${dom?`<span class="domain">${esc(dom)}</span>`:""}</h2>
+        <h2><a href="${esc(url)}" target="_blank" rel="noopener">${esc(h.title||h.story_title||t("untitled"))}</a>${dom?`<span class="domain">${esc(dom)}</span>`:""}</h2>
         <div class="meta">
-          <span class="pts">▲ ${h.points??0} pts</span>
+          <span class="pts">▲ ${t("points",h.points??0)}</span>
           <span class="sep">·</span>
           <a href="https://news.ycombinator.com/user?id=${esc(h.author)}" target="_blank" rel="noopener">${esc(h.author)}</a>
           <span class="sep">·</span>
           <span>${timeAgo(h.created_at_i)}</span>
           <span class="sep">·</span>
-          <a href="#item/${h.objectID}">💬 ${h.num_comments??0} commentaires</a>
+          <a href="#item/${h.objectID}">💬 ${t("comments",h.num_comments??0)}</a>
         </div>
       </div>
       <div class="heat" style="transform:scaleX(${Math.max(.04,(h.points||0)/max)})"></div>`;
@@ -444,7 +456,7 @@ function render(hits, append){
 /* ============ Chargement ============ */
 let debounce;
 async function load(append=false){
-  if(!append){ state.page=0; list.innerHTML=`<div class="state"><div class="spinner"></div>Chargement…</div>`; }
+  if(!append){ state.page=0; list.innerHTML=`<div class="state"><div class="spinner"></div>${t("loading")}</div>`; }
   more.disabled=true;
   try{
     const r = await fetch(buildURL());
@@ -455,12 +467,12 @@ async function load(append=false){
     state.pages=data.nbPages; state.live=true;
     render(hits, append);
     dot.classList.remove("offline");
-    statusTxt.textContent=`${data.nbHits.toLocaleString("fr-FR")} résultats · en direct`;
+    statusTxt.textContent=t("results",data.nbHits,data.nbHits.toLocaleString(lang));
     more.hidden = state.page >= state.pages-1;
   }catch(e){
     state.live=false;
     dot.classList.add("offline");
-    statusTxt.textContent="hors ligne · instantané du 11 juin 2026";
+    statusTxt.textContent=t("offline",SNAPSHOT_DATE.toLocaleDateString(lang,{day:"numeric",month:"long",year:"numeric"}));
     let hits=[...SNAPSHOT];
     const q=state.q.toLowerCase();
     if(q) hits=hits.filter(h=>h.title.toLowerCase().includes(q));
@@ -472,7 +484,7 @@ async function load(append=false){
     render(hits,false);
     more.hidden=true;
     if(state.feed==="jobs" && !hits.length)
-      list.innerHTML=`<div class="state"><strong>Mode hors ligne</strong>Les offres d'emploi nécessitent la connexion à l'API. Ouvrez ce fichier dans votre navigateur pour les données en direct.</div>`;
+      list.innerHTML=`<div class="state"><strong>${t("offlineJobs")}</strong>${t("offlineJobsHint")}</div>`;
   }finally{ more.disabled=false; }
 }
 
@@ -492,6 +504,17 @@ $("q").addEventListener("input",e=>{
 $("range").addEventListener("change",e=>{ state.range=e.target.value; load(); });
 $("sort").addEventListener("change",e=>{ state.sort=e.target.value; load(); });
 more.addEventListener("click",()=>{ state.page++; load(true); });
+
+/* Sélecteur de langue : on réécrit les textes statiques et on régénère les vues */
+const langSel=$("lang");
+langSel.innerHTML=Object.entries(LANG_NAMES)
+  .map(([code,name])=>`<option value="${code}">${name}</option>`).join("");
+langSel.value=lang;
+langSel.addEventListener("change",e=>{
+  lang=e.target.value; saveLang(lang);
+  applyStatic(); load(); route();
+});
+applyStatic();
 
 load();
 
@@ -514,7 +537,7 @@ window.addEventListener("hashchange",route);
 const ARROW=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5"/><path d="m11 18-6-6 6-6"/></svg>`;
 const itemBar = (titleHTML, metaHTML="") => `<div class="back-sentinel"></div>
   <div class="item-bar"><div class="item-bar-inner">
-    <button class="back" onclick="location.hash=''" aria-label="Retour à la liste" title="Retour à la liste">${ARROW}</button>
+    <button class="back" onclick="location.hash=''" aria-label="${t("back")}" title="${t("back")}">${ARROW}</button>
     <h2 class="item-title">${titleHTML}</h2>
     ${metaHTML?`<div class="meta item-meta">${metaHTML}</div>`:""}
   </div></div>`;
@@ -545,18 +568,18 @@ function watchBackBar(){
 async function showItem(id){
   listView.hidden=true; optionsBar.style.display="none";
   itemView.hidden=false;
-  itemView.innerHTML=`${itemBar('<span class="loading">Discussion…</span>')}
-    <div class="state"><div class="spinner"></div>Chargement de la discussion…</div>`;
+  itemView.innerHTML=`${itemBar(`<span class="loading">${t("threadShort")}</span>`)}
+    <div class="state"><div class="spinner"></div>${t("threadLoading")}</div>`;
   watchBackBar();
   try{
     const r=await fetch(`${API}/items/${id}`);
     if(!r.ok) throw new Error(r.status);
     renderItem(await r.json());
   }catch(e){
-    itemView.innerHTML=`${itemBar('<span class="loading">Discussion indisponible</span>')}
-      <div class="state"><strong>Discussion indisponible</strong>
-      Impossible de charger les commentaires (hors ligne ?).<br>
-      <a href="https://news.ycombinator.com/item?id=${id}" target="_blank" rel="noopener" style="color:var(--orange)">Ouvrir sur Hacker News →</a></div>`;
+    itemView.innerHTML=`${itemBar(`<span class="loading">${t("threadUnavailable")}</span>`)}
+      <div class="state"><strong>${t("threadUnavailable")}</strong>
+      ${t("threadUnavailableHint")}<br>
+      <a href="https://news.ycombinator.com/item?id=${id}" target="_blank" rel="noopener" style="color:var(--orange)">${t("openOnHN")}</a></div>`;
     watchBackBar();
   }
 }
@@ -594,11 +617,11 @@ function commentNode(c, op){
   const n=countAll(c);
   el.innerHTML=`
     <div class="chead">
-      <a class="author${c.author===op?" op":""}" href="https://news.ycombinator.com/user?id=${esc(c.author||"")}" target="_blank" rel="noopener">${esc(c.author||"[supprimé]")}</a>
+      <a class="author${c.author===op?" op":""}" href="https://news.ycombinator.com/user?id=${esc(c.author||"")}" target="_blank" rel="noopener">${esc(c.author||t("deletedAuthor"))}</a>
       <span class="sep">·</span><span>${timeAgo(c.created_at_i)}</span>
-      <button class="toggle" aria-expanded="true" title="Replier / déplier">[–]</button>
+      <button class="toggle" aria-expanded="true" title="${t("toggle")}">[–]</button>
     </div>
-    <div class="cbody">${c.author?sanitize(c.text):"<p><i>[commentaire supprimé]</i></p>"}</div>`;
+    <div class="cbody">${c.author?sanitize(c.text):`<p><i>${t("deletedComment")}</i></p>`}</div>`;
   if((c.children||[]).length){
     const kids=document.createElement("div");
     kids.className="kids";
@@ -619,14 +642,14 @@ function commentNode(c, op){
 function renderItem(it){
   const dom=domainOf(it.url);
   const total=countAll(it);
-  const titleHTML=`<a href="${esc(it.url||`https://news.ycombinator.com/item?id=${it.id}`)}" target="_blank" rel="noopener">${esc(it.title||"(sans titre)")}</a>${dom?`<span class="domain">${esc(dom)}</span>`:""}`;
-  const metaHTML=`<span class="pts">▲ ${it.points??0} pts</span>
+  const titleHTML=`<a href="${esc(it.url||`https://news.ycombinator.com/item?id=${it.id}`)}" target="_blank" rel="noopener">${esc(it.title||t("untitled"))}</a>${dom?`<span class="domain">${esc(dom)}</span>`:""}`;
+  const metaHTML=`<span class="pts">▲ ${t("points",it.points??0)}</span>
     <span class="sep">·</span>
     <a href="https://news.ycombinator.com/user?id=${esc(it.author)}" target="_blank" rel="noopener">${esc(it.author)}</a>
     <span class="sep">·</span><span>${timeAgo(it.created_at_i)}</span>
-    <span class="sep">·</span><span>💬 ${total} commentaires</span>
+    <span class="sep">·</span><span>💬 ${t("comments",total)}</span>
     <span class="sep">·</span>
-    <a href="https://news.ycombinator.com/item?id=${it.id}" target="_blank" rel="noopener">voir sur HN ↗</a>`;
+    <a href="https://news.ycombinator.com/item?id=${it.id}" target="_blank" rel="noopener">${t("viewOnHN")}</a>`;
   itemView.innerHTML=`${itemBar(titleHTML, metaHTML)}
     ${it.text?`<div class="item-text">${sanitize(it.text)}</div>`:""}
     <div class="cthread"></div>`;
@@ -634,7 +657,7 @@ function renderItem(it){
   window.scrollTo({top:0});
   const thread=itemView.querySelector(".cthread");
   if(!(it.children||[]).length){
-    thread.innerHTML=`<div class="state"><strong>Aucun commentaire</strong>Soyez le premier à réagir sur HN.</div>`;
+    thread.innerHTML=`<div class="state"><strong>${t("noComments")}</strong>${t("noCommentsHint")}</div>`;
     return;
   }
   it.children

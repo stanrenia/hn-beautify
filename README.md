@@ -1,6 +1,6 @@
 # HN Beautify
 
-Une relecture moderne et élégante de [Hacker News](https://news.ycombinator.com), sous forme de **Progressive Web App** installable sur le bureau et le mobile. Interface en français, données en direct via l'API publique [HN Search (Algolia)](https://hn.algolia.com/api).
+Une relecture moderne et élégante de [Hacker News](https://news.ycombinator.com), sous forme de **Progressive Web App** installable sur le bureau et le mobile. Interface en français et en anglais, données en direct via l'API publique [HN Search (Algolia)](https://hn.algolia.com/api).
 
 ## Fonctionnalités
 
@@ -12,6 +12,7 @@ Une relecture moderne et élégante de [Hacker News](https://news.ycombinator.co
 - **Barre de chaleur** sous chaque article, proportionnelle à son score
 - **Hors ligne** : l'app et les dernières données consultées restent disponibles sans connexion ; un instantané intégré sert de secours si l'API est inaccessible
 - **Installable** : mode standalone (fenêtre dédiée, sans barre d'adresse), icônes adaptatives, thème orange HN
+- **Bilingue français / anglais** : langue détectée depuis le navigateur, sélecteur dans l'en-tête, choix mémorisé ; dates relatives et nombres formatés selon la langue (`Intl`)
 - Responsive, navigation clavier, `prefers-reduced-motion` respecté
 
 ## Structure du projet
@@ -19,6 +20,7 @@ Une relecture moderne et élégante de [Hacker News](https://news.ycombinator.co
 ```
 .
 ├── index.html              # L'application (HTML + CSS + JS, sans dépendance)
+├── i18n.js                 # Traductions de l'interface (fr, en) et détection de la langue
 ├── manifest.webmanifest    # Manifeste PWA (nom, icônes, couleurs, mode standalone)
 ├── sw.js                   # Service worker (cache app shell + API + polices)
 ├── icon-192.png            # Icône 192×192
@@ -54,6 +56,14 @@ Ouvrez l'URL dans Chrome ou Edge, puis cliquez sur l'icône d'installation à dr
 ## Mettre à jour
 
 Remplacez les fichiers modifiés dans le dépôt et **incrémentez la constante `VERSION` dans `sw.js`** (ex. `hn-moderne-v3`) : le service worker purgera alors les anciens caches chez les utilisateurs déjà installés.
+
+## Langues
+
+L'interface est disponible en **français** et en **anglais** (seule langue du site officiel Hacker News). Les titres et les commentaires sont affichés tels que publiés sur HN, sans traduction.
+
+La langue est choisie dans cet ordre : paramètre d'URL `?lang=fr` / `?lang=en`, choix mémorisé via le sélecteur, langue du navigateur, puis anglais par défaut.
+
+**Ajouter une langue** : dans `i18n.js`, copier le bloc `en` de `I18N` sous un nouveau code (ex. `de`), traduire les valeurs, ajouter son nom dans `LANG_NAMES`, puis incrémenter `VERSION` dans `sw.js`. Les clés manquantes retombent sur l'anglais.
 
 ## Données et API
 
