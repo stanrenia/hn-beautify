@@ -1,11 +1,12 @@
 /* Service worker — HN Moderne */
-const VERSION = "hn-moderne-v5";
+const VERSION = "hn-moderne-v6";
 const SHELL_CACHE = `${VERSION}-shell`;
 const DATA_CACHE = `${VERSION}-data`;
 
 const SHELL = [
   "./",
   "./index.html",
+  "./i18n.js",
   "./manifest.webmanifest",
   "./icon-192.png",
   "./icon-512.png",
